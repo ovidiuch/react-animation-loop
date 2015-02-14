@@ -1,0 +1,21 @@
+{
+  "name": "react-animation-loop",
+  "version": "0.1.0",
+  "description": "React mixin running a callback at 60fps",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skidding/react-animation-loop.git"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^1.10.0",
+    "lodash": "^3.2.0",
+    "mocha": "^2.1.0",
+    "sinon": "^1.12.2",
+    "sinon-chai": "^2.6.0"
+  },
+  "main": "src/animation-loop-mixin.js",
+  "scripts": {
+    "test": "mocha tests/animation-loop-mixin.js"
+  }
+}
