@@ -1,7 +1,7 @@
 {
   "name": "react-animation-loop",
-  "version": "0.1.0",
-  "description": "React mixin running a callback at 60fps",
+  "version": "0.1.1",
+  "description": "React mixin for running a callback at 60fps with frame skipping",
   "repository": {
     "type": "git",
     "url": "https://github.com/skidding/react-animation-loop.git"
