@@ -21,40 +21,6 @@ describe("AnimationLoop mixin", function() {
     fakeComponent.onFrame = sinon.spy();
   });
 
-  it("should set state flag true when calling startAnimationLoop", function() {
-    fakeComponent.startAnimationLoop();
-
-    expect(fakeComponent.setState).to.have.been.calledWith({
-      animationLoopRunning: true
-    });
-  });
-
-  it("should set state flag false when calling stopAnimationLoop", function() {
-    fakeComponent.stopAnimationLoop();
-
-    expect(fakeComponent.setState).to.have.been.calledWith({
-      animationLoopRunning: false
-    });
-  });
-
-  it("should call startAnimationLoop if state flag true at mount", function() {
-    fakeComponent.startAnimationLoop = sinon.spy();
-    fakeComponent.state.animationLoopRunning = true;
-
-    fakeComponent.componentDidMount();
-
-    expect(fakeComponent.startAnimationLoop).to.have.been.called;
-  });
-
-  it("should call stopAnimationLoop if state flag false at mount", function() {
-    fakeComponent.stopAnimationLoop = sinon.spy();
-    fakeComponent.state.animationLoopRunning = false;
-
-    fakeComponent.componentDidMount();
-
-    expect(fakeComponent.stopAnimationLoop).to.have.been.called;
-  });
-
   describe("mocked timeout functions", function() {
     var _setTimeout,
         _clearTimeout,
@@ -73,38 +39,51 @@ describe("AnimationLoop mixin", function() {
       clearTimeout = _clearTimeout;
     });
 
-    it("should send callback to setTimeout on startAnimationLoop", function() {
-      fakeComponent.startAnimationLoop();
+    it("should call setTimeout when starting with animation true", function() {
+      fakeComponent.state.animationLoopRunning = true;
+      fakeComponent.componentWillMount();
 
       expect(setTimeout)
             .to.have.been.calledWith(fakeComponent.animationCallback);
     });
 
+    it("should call setTimeout when setting animation true", function() {
+      fakeComponent.state.animationLoopRunning = false;
+      fakeComponent.componentWillUpdate({}, {
+        animationLoopRunning: true
+      });
+
+      expect(setTimeout)
+            .to.have.been.calledWith(fakeComponent.animationCallback);
+    });
+
+    it("should call onFrame callback in animationCallback", function() {
+      var fakeTimestamp;
+
+      sinon.stub(Date, 'now', function() {
+        return fakeTimestamp;
+      });
+
+      fakeTimestamp = 0;
+      fakeComponent.state.animationLoopRunning = true;
+      fakeComponent.componentWillMount();
+
+      // Fake passing of half a second since animation started
+      fakeTimestamp = 500;
+      // We already tested we send animationCallback to setTimeout
+      fakeComponent.animationCallback();
+
+      expect(fakeComponent.onFrame.args[0][0])
+            .to.be.closeTo(30, 0.00000000001);
+
+      Date.now.restore();
+    });
+
     describe("when animation was running", function() {
 
       beforeEach(function() {
-        fakeComponent.startAnimationLoop();
-      });
-
-      it("should call onFrame callback in animationCallback", function() {
-        var fakeTimestamp;
-
-        sinon.stub(Date, 'now', function() {
-          return fakeTimestamp;
-        });
-
-        fakeTimestamp = 0;
-        fakeComponent.startAnimationLoop();
-
-        // Fake passing of half a second since animation started
-        fakeTimestamp = 500;
-        // We already tested we send animationCallback to setTimeout
-        fakeComponent.animationCallback();
-
-        expect(fakeComponent.onFrame.args[0][0])
-              .to.be.closeTo(30, 0.00000000001);
-
-        Date.now.restore();
+        fakeComponent.state.animationLoopRunning = true;
+        fakeComponent.componentWillMount();
       });
 
       it("should call setTimeout again after animationCallback", function() {
@@ -115,19 +94,16 @@ describe("AnimationLoop mixin", function() {
       });
 
       it("should call clearTimeout on stopAnimationLoop", function() {
-        fakeComponent.stopAnimationLoop();
+        fakeComponent.state.animationLoopRunning = true;
+        fakeComponent.componentWillUpdate({}, {
+          animationLoopRunning: false
+        });
 
         expect(clearTimeout).to.have.been.calledWith(timeoutId);
       });
 
       it("should call clearTimeout when unmounting", function() {
         fakeComponent.componentWillUnmount();
-
-        expect(clearTimeout).to.have.been.calledWith(timeoutId);
-      });
-
-      it("should call clearTimeout on 2nd startAnimationLoop", function() {
-        fakeComponent.startAnimationLoop();
 
         expect(clearTimeout).to.have.been.calledWith(timeoutId);
       });

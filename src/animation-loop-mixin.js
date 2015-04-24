@@ -1,11 +1,14 @@
 // Works with Node and browser globals
-(function (root, factory) {
+(function(root, factory) {
   if (typeof exports === 'object') {
-    module.exports = factory(root);
+    module.exports = factory();
   } else {
-    root.AnimationLoopMixin = factory(root);
+    root.AnimationLoopMixin = factory();
   }
 }(this, function(root) {
+
+var FPS = 60,
+    MILLISECONDS_PER_FRAME = 1000 / FPS;
 
 var AnimationLoopMixin = {
   /**
@@ -18,22 +21,22 @@ var AnimationLoopMixin = {
    *
    * A requestAnimationFrame>setTimeout polyfill is used for the callbacks.
    */
-  startAnimationLoop: function() {
-    // Prevent running more callbacks at the same time
-    this._clearAnimation();
-    this._nextFrame();
-
-    this.setState({animationLoopRunning: true});
+  componentWillMount: function() {
+    if (this.state.animationLoopRunning === true) {
+      this._startAnimationLoop();
+    }
   },
 
-  stopAnimationLoop: function() {
-    this._clearAnimation();
+  componentWillUpdate: function(nextProps, nextState) {
+    if (nextState.animationLoopRunning === this.state.animationLoopRunning) {
+      return;
+    }
 
-    this.setState({animationLoopRunning: false});
-  },
-
-  componentDidMount: function() {
-    this._loadAnimationState(this.state);
+    if (nextState.animationLoopRunning === true) {
+      this._startAnimationLoop();
+    } else {
+      this._stopAnimationLoop();
+    }
   },
 
   componentWillUnmount: function() {
@@ -46,10 +49,9 @@ var AnimationLoopMixin = {
     }
 
     var now = Date.now(),
-        timePassed = now - this._prevTime,
-        timeExpected = 1000 / 60;
+        timePassed = now - this._prevTime;
 
-    this.onFrame(timePassed / timeExpected);
+    this.onFrame(timePassed / MILLISECONDS_PER_FRAME);
 
     // Sometimes the next frame is still called even after it was canceled, so
     // we need to make sure we don't continue with the animation loop
@@ -58,18 +60,14 @@ var AnimationLoopMixin = {
     }
   },
 
-  _loadAnimationState: function(state) {
-    // If the Component state had an on-going animation it will resume as soon
-    // as a Component is mounted with the same state.
-    // If the Componene state had a stopped animation it will stop any current
-    // animation when overwriting state
-    if (state && state.animationLoopRunning !== undefined) {
-      if (state.animationLoopRunning) {
-        this.startAnimationLoop();
-      } else {
-        this.stopAnimationLoop();
-      }
-    }
+  _startAnimationLoop: function() {
+    // Prevent running more callbacks at the same time
+    this._clearAnimation();
+    this._nextFrame();
+  },
+
+  _stopAnimationLoop: function() {
+    this._clearAnimation();
   },
 
   _nextFrame: function() {
@@ -88,20 +86,40 @@ var AnimationLoopMixin = {
   }
 };
 
+var windowExists = function() {
+  return typeof(window) !== 'undefined';
+};
+
+var getRequestAnimationFrameMethod = function() {
+  if (!windowExists()) {
+    return;
+  }
+
+  return window.requestAnimationFrame ||
+         window.webkitRequestAnimationFrame ||
+         window.mozRequestAnimationFrame;
+};
+
+var getCancelAnimationFrameMethod = function() {
+  if (!windowExists()) {
+    return;
+  }
+
+  return window.cancelAnimationFrame ||
+         window.webkitCancelAnimationFrame ||
+         window.mozCancelAnimationFrame;
+};
+
 // Polyfill inspired by Paul Irish
 // http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/
 var requestAnimationFrame =
-  root.requestAnimationFrame ||
-  root.webkitRequestAnimationFrame ||
-  root.mozRequestAnimationFrame ||
+  getRequestAnimationFrameMethod() ||
   function(callback) {
     return setTimeout(callback, 1000 / 60);
   };
 
 var cancelAnimationFrame =
-  root.cancelAnimationFrame ||
-  root.webkitCancelAnimationFrame ||
-  root.mozCancelAnimationFrame ||
+  getCancelAnimationFrameMethod() ||
   function(requestId) {
     clearTimeout(requestId);
   };
