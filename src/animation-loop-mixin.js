@@ -23,7 +23,7 @@ var AnimationLoopMixin = {
    */
   componentWillMount: function() {
     if (this.state.animationLoopRunning === true) {
-      this._startAnimationLoop();
+      this._nextFrame();
     }
   },
 
@@ -33,14 +33,14 @@ var AnimationLoopMixin = {
     }
 
     if (nextState.animationLoopRunning === true) {
-      this._startAnimationLoop();
+      this._nextFrame();
     } else {
-      this._stopAnimationLoop();
+      this._cancelFrame();
     }
   },
 
   componentWillUnmount: function() {
-    this._clearAnimation();
+    this._cancelFrame();
   },
 
   animationCallback: function() {
@@ -60,16 +60,6 @@ var AnimationLoopMixin = {
     }
   },
 
-  _startAnimationLoop: function() {
-    // Prevent running more callbacks at the same time
-    this._clearAnimation();
-    this._nextFrame();
-  },
-
-  _stopAnimationLoop: function() {
-    this._clearAnimation();
-  },
-
   _nextFrame: function() {
     this._prevTime = Date.now();
 
@@ -78,7 +68,7 @@ var AnimationLoopMixin = {
     this._animationRequestId = requestAnimationFrame(this.animationCallback);
   },
 
-  _clearAnimation: function() {
+  _cancelFrame: function() {
     if (this._animationRequestId) {
       cancelAnimationFrame(this._animationRequestId);
       this._animationRequestId = null;
